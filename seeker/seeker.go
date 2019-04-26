@@ -73,7 +73,7 @@ func (f *FetchContext) CreateDepthHandler(ctx context.Context, node *meta.FetchN
 			return
 		}
 		//矩阵搜索
-		f.matrixChan <- f.CreateMatrixHandler(subCtx, node, doc)
+		f.matrixChan <- f.CreateMatrixHandler(subCtx, node, req, doc)
 	}
 	return d
 }
@@ -107,8 +107,10 @@ func (f *FetchContext) CreateWideHandler(ctx context.Context, node *meta.FetchNo
 			go func(idx int, subCtx context.Context) {
 				defer wg.Done()
 
+				//广度分页创建请求时，将当前页的地址暴露给用户
+
 				//创建请求
-				req := script.CreateRequest(copyNode, f.Config, f.JsVm, event.FuncName, idx)
+				req := script.CreateRequest(copyNode, req, f.JsVm, event.FuncName, idx)
 				if req == nil {
 					return
 				}
@@ -121,7 +123,7 @@ func (f *FetchContext) CreateWideHandler(ctx context.Context, node *meta.FetchNo
 				}
 
 				//对结果集添加到矩阵通道中，由矩阵处理
-				f.matrixChan <- f.CreateMatrixHandler(subCtx, copyNode, doc)
+				f.matrixChan <- f.CreateMatrixHandler(subCtx, copyNode, req, doc)
 			}(startIndex, subCtx)
 
 			//下一页
@@ -132,7 +134,7 @@ func (f *FetchContext) CreateWideHandler(ctx context.Context, node *meta.FetchNo
 	return w
 }
 
-func (f *FetchContext) CreateMatrixHandler(ctx context.Context, node *meta.FetchNode, dom *goquery.Document) *MatrixHandler {
+func (f *FetchContext) CreateMatrixHandler(ctx context.Context, node *meta.FetchNode, req *http.Request, dom *goquery.Document) *MatrixHandler {
 	m := &MatrixHandler{
 		node: node,
 	}
@@ -214,7 +216,7 @@ func (f *FetchContext) CreateMatrixHandler(ctx context.Context, node *meta.Fetch
 		for _, v := range fetchArray {
 
 			//构建每一个条目的请求
-			req := script.CreateRequest(depthNode, f.Config, f.JsVm, event.Link.FuncName, v)
+			req := script.CreateRequest(depthNode, req, f.JsVm, event.Link.FuncName, v)
 			if req == nil {
 				continue
 			}

@@ -12,18 +12,10 @@ import (
 	"os"
 )
 
-func fetchDataArrayToMap(array []*meta.FetchData) map[string]interface{} {
-	fmtMap := make(map[string]interface{}, 0)
-	for _, d := range array {
-		fmtMap[d.Field] = d.Value
-	}
-	return fmtMap
-}
-
 /*
 	创建分页请求
 */
-func CreateRequest(node *meta.FetchNode, cfg *meta.FetchConfig, scriptVm *otto.Otto, funcName string, args interface{}) *http.Request {
+func CreateRequest(node *meta.FetchNode, fromReq *http.Request, scriptVm *otto.Otto, funcName string, args interface{}) *http.Request {
 
 	//检查方法是否存在，并有效
 	handler, err := scriptVm.Get(funcName)
@@ -31,13 +23,16 @@ func CreateRequest(node *meta.FetchNode, cfg *meta.FetchConfig, scriptVm *otto.O
 		return nil
 	}
 
-	value, err := scriptVm.Call(funcName, nil, args)
+	//将当前请求来源传递给用户自定义函数
+	value, err := scriptVm.Call(funcName, nil, node, fromReq, args)
 	if err != nil {
 		return nil
 	}
 
 	//将value转换为req对象
 	value.Object()
+
+	return nil
 }
 
 func CreateLinkNode(scriptDir string, fileName string) *meta.FetchNode {
@@ -99,13 +94,16 @@ func LoadContext(fileDir string, scriptName string) (*otto.Otto, error) {
 		return nil, err
 	}
 
-	/*
-		加载公共函数
-		公共报文头
-	*/
-	vm.Set("$setGlobalHeader", nil)
+	vm.Set("$fieldConvertToJson", func() {
 
-	
-
+	})
 	return vm, nil
+}
+
+func fetchDataArrayToMap(array []*meta.FetchData) map[string]interface{} {
+	fmtMap := make(map[string]interface{}, 0)
+	for _, d := range array {
+		fmtMap[d.Field] = d.Value
+	}
+	return fmtMap
 }
