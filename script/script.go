@@ -9,6 +9,7 @@ import (
 	"log"
 	"matrix-seeker/meta"
 	"net/http"
+	"net/url"
 	"os"
 )
 
@@ -18,21 +19,77 @@ import (
 func CreateRequest(node *meta.FetchNode, fromReq *http.Request, scriptVm *otto.Otto, funcName string, args interface{}) *http.Request {
 
 	//检查方法是否存在，并有效
-	handler, err := scriptVm.Get(funcName)
-	if err != nil || !handler.IsFunction() {
-		return nil
-	}
-
-	//将当前请求来源传递给用户自定义函数
-	value, err := scriptVm.Call(funcName, nil, node, fromReq, args)
+	_, err := scriptVm.Get(funcName)
 	if err != nil {
 		return nil
 	}
 
-	//将value转换为req对象
-	value.Object()
+	//对参数做序列化
+	nodeByte, _ := json.Marshal(node)
+	nodeJson, _ := scriptVm.Eval("(" + string(nodeByte) + ")")
 
-	return nil
+	var reqJson otto.Value
+	if fromReq != nil {
+		reqMap := &map[string]interface{}{
+			"Header":   fromReq.Header,
+			"URL":      fromReq.URL,
+			"Method":   fromReq.Method,
+			"Form":     fromReq.Form,
+			"PostForm": fromReq.PostForm,
+		}
+		reqByte, _ := json.Marshal(reqMap)
+		reqJson, _ = scriptVm.Eval("(" + string(reqByte) + ")")
+	}
+
+	//判断值类型
+	argValue, _ := otto.ToValue(args)
+
+	//将当前请求来源传递给用户自定义函数
+	value, err := scriptVm.Call(funcName, nil, nodeJson, reqJson, argValue)
+	if err != nil {
+		return nil
+	}
+
+	return fmtCallOut(value)
+}
+
+func fmtCallOut(value otto.Value) *http.Request {
+	//将value转换为req对象
+	out := value.Object()
+
+	req := &http.Request{}
+
+	//URL
+	urlVal, _ := out.Get("URL")
+
+	reqUrl := &url.URL{}
+	err := json.Unmarshal([]byte(urlVal.String()), *reqUrl)
+	if err != nil {
+		return nil
+	}
+	req.URL = reqUrl
+
+	//Method
+	methodVal, _ := out.Get("Method")
+	if methodVal.String() == "" {
+		req.Method = "GET"
+	} else {
+		req.Method = methodVal.String()
+	}
+
+	////Header
+	//header := http.Header{}
+	//headerVal, err := out.Get("header")
+	//
+	//
+	////Form,PostForm
+	//cvtUrlValues := func(name string) url.Values {
+	//
+	//}
+	//
+	//req.Form = cvtUrlValues("form")
+	//req.PostForm = cvtUrlValues("postForm")
+	return req
 }
 
 func CreateLinkNode(scriptDir string, fileName string) *meta.FetchNode {
@@ -94,9 +151,6 @@ func LoadContext(fileDir string, scriptName string) (*otto.Otto, error) {
 		return nil, err
 	}
 
-	vm.Set("$fieldConvertToJson", func() {
-
-	})
 	return vm, nil
 }
 

@@ -31,7 +31,7 @@ func (f *FetchContext) Execute(root *meta.FetchNode, artifact *artifact.Artifact
 		rootCtx, _ := context.WithCancel(context.Background())
 
 		//优先读取脚本初始化请求
-		req := script.CreateRequest(node, nil, f.JsVm, "infoRoot", nil)
+		req := script.CreateRequest(node, nil, f.JsVm, "startRoot", nil)
 		if req == nil {
 			url, err := url.ParseRequestURI(f.Config.HttpUrl)
 			if err != nil {
