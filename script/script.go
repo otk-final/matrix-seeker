@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 )
 
 /*
@@ -28,68 +29,20 @@ func CreateRequest(node *meta.FetchNode, fromReq *http.Request, scriptVm *otto.O
 	nodeByte, _ := json.Marshal(node)
 	nodeJson, _ := scriptVm.Eval("(" + string(nodeByte) + ")")
 
-	var reqJson otto.Value
-	if fromReq != nil {
-		reqMap := &map[string]interface{}{
-			"Header":   fromReq.Header,
-			"URL":      fromReq.URL,
-			"Method":   fromReq.Method,
-			"Form":     fromReq.Form,
-			"PostForm": fromReq.PostForm,
-		}
-		reqByte, _ := json.Marshal(reqMap)
-		reqJson, _ = scriptVm.Eval("(" + string(reqByte) + ")")
-	}
+	//当前请求
+	reqJson := cvtValue(scriptVm, fromReq)
 
-	//判断值类型
-	argValue, _ := otto.ToValue(args)
+	//判断值类型(两种）
+	argValue, _ := cvtArgs(scriptVm, args)
 
 	//将当前请求来源传递给用户自定义函数
 	value, err := scriptVm.Call(funcName, nil, nodeJson, reqJson, argValue)
 	if err != nil {
+		log.Print(err.Error())
 		return nil
 	}
 
-	return fmtCallOut(value)
-}
-
-func fmtCallOut(value otto.Value) *http.Request {
-	//将value转换为req对象
-	out := value.Object()
-
-	req := &http.Request{}
-
-	//URL
-	urlVal, _ := out.Get("URL")
-
-	reqUrl := &url.URL{}
-	err := json.Unmarshal([]byte(urlVal.String()), *reqUrl)
-	if err != nil {
-		return nil
-	}
-	req.URL = reqUrl
-
-	//Method
-	methodVal, _ := out.Get("Method")
-	if methodVal.String() == "" {
-		req.Method = "GET"
-	} else {
-		req.Method = methodVal.String()
-	}
-
-	////Header
-	//header := http.Header{}
-	//headerVal, err := out.Get("header")
-	//
-	//
-	////Form,PostForm
-	//cvtUrlValues := func(name string) url.Values {
-	//
-	//}
-	//
-	//req.Form = cvtUrlValues("form")
-	//req.PostForm = cvtUrlValues("postForm")
-	return req
+	return cvtRequest(value)
 }
 
 func CreateLinkNode(scriptDir string, fileName string) *meta.FetchNode {
@@ -147,17 +100,132 @@ func LoadContext(fileDir string, scriptName string) (*otto.Otto, error) {
 
 	fmt.Println(ok)
 	if err != nil {
-		log.Println(fmt.Sprintf("脚本文件[%s]初始化异常:", scriptName))
+		log.Println(fmt.Sprintf("脚本文件[%s]初始化异常:[%s]", scriptName, err.Error()))
 		return nil, err
 	}
 
 	return vm, nil
 }
 
-func fetchDataArrayToMap(array []*meta.FetchData) map[string]interface{} {
-	fmtMap := make(map[string]interface{}, 0)
-	for _, d := range array {
-		fmtMap[d.Field] = d.Value
+func cvtArgs(scriptVm *otto.Otto, argVal interface{}) (otto.Value, error) {
+
+	if argVal == nil {
+		return otto.NaNValue(), nil
 	}
-	return fmtMap
+
+	switch argVal.(type) {
+	case int:
+		return otto.ToValue(argVal)
+	case []*meta.FetchData:
+		array := argVal.([]*meta.FetchData)
+		fmtMap := make(map[string]interface{}, 0)
+		for _, d := range array {
+			fmtMap[d.Field] = d.Value
+		}
+		//对参数做序列化
+		argByte, _ := json.Marshal(fmtMap)
+		return scriptVm.Eval("(" + string(argByte) + ")")
+	default:
+		return otto.UndefinedValue(), nil
+	}
+}
+
+/*
+	将golang的request对象转换为js对象
+	{
+		url:"",
+		method:"",
+		params:{},
+		header:{}
+	}
+*/
+
+func cvtValue(scriptVm *otto.Otto, r *http.Request) otto.Value {
+	if r == nil {
+		return otto.UndefinedValue()
+	}
+
+	valMap := map[string]interface{}{
+		"url":    r.URL.String(),
+		"header": r.Header,
+		"method": r.Method,
+		"params": r.Form,
+	}
+	//json序列化
+	valByte, _ := json.Marshal(valMap)
+	//强转js 的json对象
+	valJson, _ := scriptVm.Eval("(" + string(valByte) + ")")
+	return valJson
+}
+
+func cvtRequest(val otto.Value) *http.Request {
+	if val.IsUndefined() || !val.IsObject() {
+		return nil
+	}
+
+	req := &http.Request{}
+	instance := val.Object()
+
+	//URL
+	urlVal, err := instance.Get("url")
+	if err == nil {
+		url, _ := url.ParseRequestURI(urlVal.String())
+		req.URL = url
+	}
+
+	//Method
+	methodVal, err := instance.Get("method")
+	if err == nil && methodVal.IsString() {
+		req.Method = methodVal.String()
+	} else {
+		req.Method = "GET"
+	}
+
+	toHeader := func(obj *otto.Object) http.Header {
+		keys := obj.Keys()
+		out := http.Header{}
+		for _, key := range keys {
+			_val, err := obj.Get(key)
+			if err != nil {
+				continue
+			}
+			out.Add(key, _val.String())
+		}
+		return out
+	}
+
+	toParams := func(obj *otto.Object) url.Values {
+		keys := obj.Keys()
+		urlVal := url.Values{}
+
+		for _, key := range keys {
+			_val, err := obj.Get(key)
+			if err != nil {
+				continue
+			}
+			urlVal.Add(key, _val.String())
+		}
+		return urlVal
+	}
+
+	//Params
+	paramsVal, err := instance.Get("params")
+	if err == nil && paramsVal.IsObject() {
+		//转换
+		urlValues := toParams(paramsVal.Object())
+		//替换
+		if strings.EqualFold(req.Method, "GET") {
+			req.URL.RawQuery = urlValues.Encode()
+		} else {
+			req.PostForm = urlValues
+		}
+	}
+
+	//Header
+	headerVal, err := instance.Get("header")
+	if err == nil && headerVal.IsObject() {
+		req.Header = toHeader(headerVal.Object())
+	}
+
+	return req
 }

@@ -27,7 +27,7 @@ func main() {
 
 	//解析root脚本
 	cfg := &meta.FetchConfig{
-		ScriptPath: "D://seeker/七丽时尚",
+		ScriptPath: "F://seeker/七丽时尚",
 		HttpUrl:    "http://www.7y7.com/qinggan/",
 		TimeOut:    time.Second * 10,
 	}
