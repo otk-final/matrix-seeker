@@ -12,17 +12,50 @@ import (
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 )
+
+var lock = &sync.Mutex{}
+
+func CreateNodeName(node *meta.FetchNode, fromReq *http.Request, scriptVm *otto.Otto, funcName string, args interface{}) string {
+
+	//必须采用锁机制（otto 的 bug)
+	lock.Lock()
+	defer lock.Unlock()
+
+	//执行js函数
+	val, err := exeFunc(node, fromReq, scriptVm, funcName, args)
+	if err != nil {
+		return ""
+	}
+
+	return val.String()
+}
+
+func CreateRequest(node *meta.FetchNode, fromReq *http.Request, scriptVm *otto.Otto, funcName string, args interface{}) *http.Request {
+
+	//必须采用锁机制（otto 的 bug)
+	lock.Lock()
+	defer lock.Unlock()
+
+	//执行js函数
+	val, err := exeFunc(node, fromReq, scriptVm, funcName, args)
+	if err != nil {
+		return nil
+	}
+
+	return cvtRequest(val)
+}
 
 /*
 	创建分页请求
 */
-func CreateRequest(node *meta.FetchNode, fromReq *http.Request, scriptVm *otto.Otto, funcName string, args interface{}) *http.Request {
+func exeFunc(node *meta.FetchNode, fromReq *http.Request, scriptVm *otto.Otto, funcName string, args interface{}) (otto.Value, error) {
 
 	//检查方法是否存在，并有效
 	_, err := scriptVm.Get(funcName)
 	if err != nil {
-		return nil
+		return otto.NullValue(), nil
 	}
 
 	//对参数做序列化
@@ -36,13 +69,8 @@ func CreateRequest(node *meta.FetchNode, fromReq *http.Request, scriptVm *otto.O
 	argValue, _ := cvtArgs(scriptVm, args)
 
 	//将当前请求来源传递给用户自定义函数
-	value, err := scriptVm.Call(funcName, nil, nodeJson, reqJson, argValue)
-	if err != nil {
-		log.Print(err.Error())
-		return nil
-	}
+	return scriptVm.Call(funcName, nil, nodeJson, reqJson, argValue)
 
-	return cvtRequest(value)
 }
 
 func CreateLinkNode(scriptDir string, fileName string) *meta.FetchNode {

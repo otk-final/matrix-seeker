@@ -24,6 +24,8 @@ replace golang.org/x/text => github.com/golang/text v0.3.1-0.20190410012825-f490
 
 require (
 	github.com/PuerkitoBio/goquery v1.5.0
+	github.com/mattn/go-runewidth v0.0.4 // indirect
+	github.com/nsf/termbox-go v0.0.0-20190325093121-288510b9734e
 	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 )

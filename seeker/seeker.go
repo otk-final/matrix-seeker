@@ -1,7 +1,6 @@
 package seeker
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
@@ -18,6 +17,8 @@ import (
 type FetchContext struct {
 	Config     *meta.FetchConfig
 	JsVm       *otto.Otto
+	ctxWait    *sync.WaitGroup
+	finished   bool
 	wideChan   chan *WideHandler
 	matrixChan chan *MatrixHandler
 	depthChan  chan *DepthHandler
@@ -50,19 +51,19 @@ type DepthHandler struct {
 	Fetch func()
 }
 
-func (f *FetchContext) CreateDepthHandler(ctx context.Context, node *meta.FetchNode, req *http.Request) *DepthHandler {
+func (f *FetchContext) CreateDepthHandler(node *meta.FetchNode, req *http.Request) *DepthHandler {
+	f.ctxWait.Add(1)
 
 	d := &DepthHandler{
 		node: node,
 	}
 
 	d.Fetch = func() {
-		subCtx, cancel := context.WithCancel(ctx)
-		defer cancel()
+		defer f.ctxWait.Done()
 
 		//优先判断广度
 		if node.Event != nil && node.Event.Pageable != nil {
-			f.wideChan <- f.CreateWideHandler(ctx, node, req)
+			f.wideChan <- f.CreateWideHandler(node, req)
 			return
 		}
 
@@ -73,21 +74,21 @@ func (f *FetchContext) CreateDepthHandler(ctx context.Context, node *meta.FetchN
 			return
 		}
 		//矩阵搜索
-		f.matrixChan <- f.CreateMatrixHandler(subCtx, node, req, doc)
+		f.matrixChan <- f.CreateMatrixHandler(node, req, doc)
 	}
 	return d
 }
 
-func (f *FetchContext) CreateWideHandler(ctx context.Context, node *meta.FetchNode, req *http.Request) *WideHandler {
+func (f *FetchContext) CreateWideHandler(node *meta.FetchNode, req *http.Request) *WideHandler {
+	f.ctxWait.Add(1)
 
 	w := &WideHandler{
 		node: node,
 	}
 	w.Fetch = func() {
-		subCtx, cancel := context.WithCancel(ctx)
-		defer cancel()
+		defer f.ctxWait.Done()
 
-		wg := sync.WaitGroup{}
+		pageWait := &sync.WaitGroup{}
 		//轮询执行
 		event := node.Event.Pageable
 		startIndex := event.BeginIndex | 0
@@ -96,21 +97,18 @@ func (f *FetchContext) CreateWideHandler(ctx context.Context, node *meta.FetchNo
 			if event.EndIndex != -1 && startIndex > event.EndIndex {
 				break
 			}
-			wg.Add(1)
+			pageWait.Add(1)
 
-			//TODO 拷贝当前页的数据
 			copyNode := node.CopySelf()
-			//将生成的节点添加到子节点中
-			node.AddChild(copyNode)
+			//将生成的节点添加同步节点
+			node.AddSiblings(copyNode)
 
 			//分页执行
-			go func(idx int, subCtx context.Context) {
-				defer wg.Done()
+			go func(idx int, sub *meta.FetchNode, pageWait *sync.WaitGroup) {
+				defer pageWait.Done()
 
-				//广度分页创建请求时，将当前页的地址暴露给用户
-
-				//创建请求
-				req := script.CreateRequest(copyNode, req, f.JsVm, event.FuncName, idx)
+				// 广度分页创建请求时，将当前页的地址暴露给用户创建请求
+				req := script.CreateRequest(sub, req, f.JsVm, event.FuncName, idx)
 				if req == nil {
 					return
 				}
@@ -123,24 +121,26 @@ func (f *FetchContext) CreateWideHandler(ctx context.Context, node *meta.FetchNo
 				}
 
 				//对结果集添加到矩阵通道中，由矩阵处理
-				f.matrixChan <- f.CreateMatrixHandler(subCtx, copyNode, req, doc)
-			}(startIndex, subCtx)
+				f.matrixChan <- f.CreateMatrixHandler(copyNode, req, doc)
+			}(startIndex, copyNode, pageWait)
 
 			//下一页
 			startIndex++
 		}
-		wg.Wait()
+
+		pageWait.Wait()
 	}
 	return w
 }
 
-func (f *FetchContext) CreateMatrixHandler(ctx context.Context, node *meta.FetchNode, req *http.Request, dom *goquery.Document) *MatrixHandler {
+func (f *FetchContext) CreateMatrixHandler(node *meta.FetchNode, req *http.Request, dom *goquery.Document) *MatrixHandler {
+	f.ctxWait.Add(1)
+
 	m := &MatrixHandler{
 		node: node,
 	}
 	m.Fetch = func() {
-		subCtx, cancel := context.WithCancel(ctx)
-		defer cancel()
+		defer f.ctxWait.Done()
 
 		fetchArray := make([][]*meta.FetchData, 0)
 		//定位
@@ -158,7 +158,7 @@ func (f *FetchContext) CreateMatrixHandler(ctx context.Context, node *meta.Fetch
 				//格式化值类型
 				switch field.ValueType {
 				case meta.ArrayType: //数组
-					array := make([]interface{}, 0)
+					array := make([]string, 0)
 					//数组
 					selection.Find(field.Selector).Each(func(s int, ss *goquery.Selection) {
 						//传入nil字符，之前取当前节点相关数据
@@ -222,7 +222,7 @@ func (f *FetchContext) CreateMatrixHandler(ctx context.Context, node *meta.Fetch
 			}
 
 			//创建深度实现
-			f.depthChan <- f.CreateDepthHandler(subCtx, depthNode, req)
+			f.depthChan <- f.CreateDepthHandler(depthNode, req)
 		}
 	}
 	return m
@@ -231,7 +231,7 @@ func (f *FetchContext) CreateMatrixHandler(ctx context.Context, node *meta.Fetch
 func httpCall(req *http.Request) (*goquery.Document, error) {
 
 	//请求
-	client := &http.Client{Timeout: time.Second * 30}
+	client := &http.Client{Timeout: time.Second * 60}
 
 	//执行
 	resp, err := client.Do(req)
@@ -251,7 +251,7 @@ func httpCall(req *http.Request) (*goquery.Document, error) {
 	return dom, nil
 }
 
-var findHandler = func(fs string, tp string, _s *goquery.Selection) (interface{}, error) {
+var findHandler = func(fs string, tp string, _s *goquery.Selection) (string, error) {
 	if fs != "" {
 		_s = _s.Find(fs)
 	}
@@ -266,10 +266,10 @@ var findHandler = func(fs string, tp string, _s *goquery.Selection) (interface{}
 	} else if strings.HasPrefix(tp, meta.FindAttr) { //属性
 		out, bool := _s.Attr(strings.Split(tp, ":")[1])
 		if !bool {
-			return nil, errors.New("not exist")
+			return "", errors.New("not exist")
 		}
 		return out, nil
 
 	}
-	return nil, errors.New("FindType not exist")
+	return "", errors.New("FindType not exist")
 }

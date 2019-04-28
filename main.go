@@ -1,33 +1,44 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
+	"github.com/nsf/termbox-go"
 	"matrix-seeker/artifact"
 	"matrix-seeker/meta"
 	"matrix-seeker/script"
 	"matrix-seeker/seeker"
-	"net/url"
+	"runtime"
 	"time"
 )
 
 func main1() {
 
-	ur := &url.URL{
-		Host: "www.baidu.com",
+	termbox.Init()
+	defer termbox.Close()
+
+Loop:
+	for {
+		switch ev := termbox.PollEvent(); ev.Type {
+		case termbox.EventKey:
+			switch ev.Key {
+			case termbox.KeyEsc:
+				fmt.Println("You press Esc")
+			case termbox.KeyF1:
+				fmt.Println("You press F1")
+			default:
+				break Loop
+			}
+		}
 	}
-	reqByte, err := json.Marshal(ur)
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(string(reqByte))
 
 }
 func main() {
 
+	runtime.GOMAXPROCS(runtime.NumCPU())
+
 	//解析root脚本
 	cfg := &meta.FetchConfig{
-		ScriptPath: "F://seeker/七丽时尚",
+		ScriptPath: "D://DEV/GoProject/matrix-seeker/script-example/七丽时尚",
 		HttpUrl:    "http://www.7y7.com/qinggan/",
 		TimeOut:    time.Second * 10,
 	}
@@ -45,7 +56,9 @@ func main() {
 	}
 
 	//存储(本地存储)
-	at := &artifact.Artifact{}
+	at := &artifact.Persistent{
+		WaitNode: make(chan *meta.FetchNode, 1),
+	}
 
 	//执行
 	ft.Execute(root, at)

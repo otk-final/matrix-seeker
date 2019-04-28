@@ -1,31 +1,40 @@
 {
-	"bind":{
-		"position":".news-ul>li",
-		"fields":[{
-			"selector":"a",
-			"findType":"attr:href",
-			"mapper":"detailUrl"
-		},{
-			"selector":"a>img",
-			"findType":"attr:src",
-			"valueType":"_",
-			"mapper":"coverUrl"
-		},{
-			"selector":".info>p[class='jj']",
-			"findType":"text",
-			"mapper":"description"
-		},{
-			"selector":".info>div[class='bot']>div[class='bot-l'] a",
-			"findType":"text",
-			"valueType":"[]",
-			"mapper":"tags"
-		}]
-	},
-	"event":{
-		"pageable":{
-			"funcName":"builderClassifyPage",
-			"beginIndex":2,
-			"endIndex":4
-		}
-	}
+  "bind": {
+    "position": ".news-ul>li",
+    "fields": [
+      {
+        "selector": "a",
+        "findType": "attr:href",
+        "mapper": "detailUrl"
+      },
+      {
+        "selector": "a>img",
+        "findType": "attr:src",
+        "valueType": "_",
+        "mapper": "coverUrl"
+      },
+      {
+        "selector": ".info>p[class='jj']",
+        "findType": "text",
+        "mapper": "description"
+      },
+      {
+        "selector": ".info>div[class='bot']>div[class='bot-l'] a",
+        "findType": "text",
+        "valueType": "[]",
+        "mapper": "tags"
+      }
+    ]
+  },
+  "event": {
+    "link": {
+      "funcName": "builderContentPage",
+      "next": "content-page.json"
+    },
+    "pageable": {
+      "funcName": "builderClassifyPage",
+      "beginIndex": 2,
+      "endIndex": 8
+    }
+  }
 }
