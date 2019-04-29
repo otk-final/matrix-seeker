@@ -1,4 +1,5 @@
 {
+	"name": "详情",
 	"bind":{
 		"position":"div[class='artcont']",
 		"fields":[{

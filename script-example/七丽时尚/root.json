@@ -1,20 +1,24 @@
 {
-	"bind":{
-		"position":".tupage-left a",
-		"fields":[{
-			"selector":"",
-			"findType":"attr:href",
-			"mapper":"classifyUrl"
-		},{
-			"selector":"",
-			"findType":"text",
-			"mapper":"classifyName"
-		}]
-	},
-	"event":{
-		"link":{
-			"funcName":"builderClassifyHome",
-			"next":"classify-page.json"
-		}
-	}
+  "name": "首页",
+  "bind": {
+    "position": ".tupage-left a",
+    "fields": [
+      {
+        "selector": "",
+        "findType": "attr:href",
+        "mapper": "classifyUrl"
+      },
+      {
+        "selector": "",
+        "findType": "text",
+        "mapper": "classifyName"
+      }
+    ]
+  },
+  "event": {
+    "link": {
+      "funcName": "builderClassifyHome",
+      "next": "classify-page.json"
+    }
+  }
 }

@@ -2,35 +2,26 @@ package main
 
 import (
 	"fmt"
-	"github.com/nsf/termbox-go"
+	uuid "github.com/satori/go.uuid"
 	"matrix-seeker/artifact"
 	"matrix-seeker/meta"
 	"matrix-seeker/script"
 	"matrix-seeker/seeker"
+	"os"
 	"runtime"
+	"sync"
 	"time"
 )
 
 func main1() {
+	pic := "D:/seeker/out/分类/素材/" + "uploads-pic-1-5bac2d8691500_275_275.jpg"
 
-	termbox.Init()
-	defer termbox.Close()
-
-Loop:
-	for {
-		switch ev := termbox.PollEvent(); ev.Type {
-		case termbox.EventKey:
-			switch ev.Key {
-			case termbox.KeyEsc:
-				fmt.Println("You press Esc")
-			case termbox.KeyF1:
-				fmt.Println("You press F1")
-			default:
-				break Loop
-			}
-		}
+	//检查文件是否存在
+	if imgFile, _ := os.Stat(pic); imgFile != nil {
+		return
 	}
 
+	fmt.Println(uuid.NewV4())
 }
 func main() {
 
@@ -55,9 +46,10 @@ func main() {
 		ft.JsVm = vm
 	}
 
-	//存储(本地存储)
+	//存储(本地存储) ,默认当前目录下out文件夹
 	at := &artifact.Persistent{
-		WaitNode: make(chan *meta.FetchNode, 1),
+		OutputDir: "D:/seeker/out",
+		WaitGroup: &sync.WaitGroup{},
 	}
 
 	//执行

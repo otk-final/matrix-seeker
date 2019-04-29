@@ -94,14 +94,14 @@ func (f *FetchContext) CreateWideHandler(node *meta.FetchNode, req *http.Request
 		startIndex := event.BeginIndex | 0
 		for {
 			//无最大限制，直到某一页没有数据返回，或者某页未抓取到数据
-			if event.EndIndex != -1 && startIndex > event.EndIndex {
+			if startIndex > event.EndIndex {
 				break
 			}
 			pageWait.Add(1)
 
 			copyNode := node.CopySelf()
 			//将生成的节点添加同步节点
-			node.AddSiblings(copyNode)
+			node.AddChild(copyNode)
 
 			//分页执行
 			go func(idx int, sub *meta.FetchNode, pageWait *sync.WaitGroup) {
@@ -112,6 +112,8 @@ func (f *FetchContext) CreateWideHandler(node *meta.FetchNode, req *http.Request
 				if req == nil {
 					return
 				}
+				//对每个节点设置请求路径
+				sub.Referer = req.URL.String()
 
 				//获取页面元素
 				doc, err := httpCall(req)
@@ -215,14 +217,19 @@ func (f *FetchContext) CreateMatrixHandler(node *meta.FetchNode, req *http.Reque
 		//遍历进行深度抓取
 		for _, v := range fetchArray {
 
+			tmpNode := depthNode.CopySelf()
+			node.AddChild(tmpNode)
+
 			//构建每一个条目的请求
-			req := script.CreateRequest(depthNode, req, f.JsVm, event.Link.FuncName, v)
+			req := script.CreateRequest(tmpNode, req, f.JsVm, event.Link.FuncName, v)
 			if req == nil {
 				continue
 			}
+			//对每个节点设置请求路径
+			tmpNode.Referer = req.URL.String()
 
 			//创建深度实现
-			f.depthChan <- f.CreateDepthHandler(depthNode, req)
+			f.depthChan <- f.CreateDepthHandler(tmpNode, req)
 		}
 	}
 	return m

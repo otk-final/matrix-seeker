@@ -17,9 +17,8 @@ import (
 
 func (f *FetchContext) Execute(root *meta.FetchNode, ap *artifact.Persistent) {
 
-	//默认当前目录下out文件夹
-	if ap.OutputDir == "" {
-		ap.OutputDir = f.Config.ScriptPath + "/" + "out"
+	if root.Name == "" {
+		root.Name = "ROOT"
 	}
 
 	//构建信道
@@ -33,13 +32,13 @@ func (f *FetchContext) Execute(root *meta.FetchNode, ap *artifact.Persistent) {
 	f.startRoot(root)
 
 	//开启监控任务（异步消费）
-	go f.monitor(ap)
-
-	//开启异步存储
-	//go f.persistent(ap)
+	go f.monitor()
 
 	//任务是否完成
 	f.finish()
+
+	//通知持久化
+	ap.Bulk(root)
 }
 
 func (f *FetchContext) startRoot(root *meta.FetchNode) {
@@ -72,33 +71,10 @@ func (f *FetchContext) finish() {
 	close(f.matrixChan)
 
 	f.finished = true
+
 }
 
-func (f *FetchContext) persistent(ap *artifact.Persistent) {
-	for {
-
-		//关闭状态（关闭后进行退出）
-		if f.finished {
-			break
-		}
-
-		select {
-		case nd := <-ap.WaitNode:
-			go func() {
-				f.ctxWait.Add(1)
-				defer f.ctxWait.Done()
-
-				ap.Bulk(nd)
-			}()
-		case <-time.After(time.Second * 10):
-			fmt.Println("-------------------------wait-------------------------")
-		default:
-			break
-		}
-	}
-}
-
-func (f *FetchContext) monitor(ap *artifact.Persistent) {
+func (f *FetchContext) monitor() {
 
 	for {
 
@@ -110,19 +86,18 @@ func (f *FetchContext) monitor(ap *artifact.Persistent) {
 		select {
 		case <-time.After(time.Second * 10):
 			fmt.Println("-------------------------wait-------------------------")
-		case mc := <-f.matrixChan: //矩阵
-			go func() {
-				//执行
-				mc.Fetch()
-				if len(mc.node.Data) > 0 {
-					//持久化
-					ap.WaitNode <- mc.node
-				}
-			}()
-		case dc := <-f.depthChan: //深度
-			go dc.Fetch()
-		case wc := <-f.wideChan: //广度
-			go wc.Fetch()
+		case mc, ok := <-f.matrixChan: //矩阵
+			if ok {
+				go mc.Fetch()
+			}
+		case dc, ok := <-f.depthChan: //深度
+			if ok {
+				go dc.Fetch()
+			}
+		case wc, ok := <-f.wideChan: //广度
+			if ok {
+				go wc.Fetch()
+			}
 		default:
 			break
 		}

@@ -1,4 +1,5 @@
 {
+  "name": "分类",
   "bind": {
     "position": ".news-ul>li",
     "fields": [
@@ -10,8 +11,16 @@
       {
         "selector": "a>img",
         "findType": "attr:src",
+        "actionType": "download",
         "valueType": "_",
         "mapper": "coverUrl"
+      },
+      {
+        "selector": "a>img",
+        "findType": "attr:data-original",
+        "actionType": "download",
+        "valueType": "_",
+        "mapper": "lazyCoverUrl"
       },
       {
         "selector": ".info>p[class='jj']",
