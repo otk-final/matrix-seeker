@@ -3,11 +3,11 @@ package meta
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"time"
 )
 
 type FetchConfig struct {
-	HttpUrl    string
 	ScriptPath string
 	TimeOut    time.Duration
 }
@@ -46,7 +46,7 @@ func (node *FetchNode) AppendData(temp [][]*FetchData) {
 	node.Data = append(node.Data, temp...)
 
 	by, _ := json.Marshal(temp)
-	fmt.Println(string(by))
+	log.Println(fmt.Sprintf("数据:%s", by))
 }
 
 /*

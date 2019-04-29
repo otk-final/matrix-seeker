@@ -1,37 +1,76 @@
 package main
 
 import (
-	"fmt"
-	uuid "github.com/satori/go.uuid"
+	"bufio"
+	"github.com/urfave/cli"
+	"log"
 	"matrix-seeker/artifact"
 	"matrix-seeker/meta"
 	"matrix-seeker/script"
 	"matrix-seeker/seeker"
 	"os"
 	"runtime"
+	"strings"
 	"sync"
 	"time"
 )
 
-func main1() {
-	pic := "D:/seeker/out/分类/素材/" + "uploads-pic-1-5bac2d8691500_275_275.jpg"
+func initCli() *cli.App {
 
-	//检查文件是否存在
-	if imgFile, _ := os.Stat(pic); imgFile != nil {
-		return
+	app := cli.NewApp()
+	app.Name = "矩阵爬虫 - 终端"
+
+	app.Version = "1.0.0"
+	app.UsageText = "加载本地指定脚本文件执行"
+
+	app.Commands = []cli.Command{{
+		Name:   "start",
+		Usage:  "执行脚本",
+		Action: startCmd,
+	}}
+
+	err := app.Run(os.Args)
+	if err != nil {
+		log.Fatal(err)
 	}
-
-	fmt.Println(uuid.NewV4())
+	return app
 }
+
 func main() {
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
+	app := initCli()
+	//监控用户输入
+	for {
+		var input string
+
+		scanner := bufio.NewScanner(os.Stdin)
+		scanner.Scan()
+		input = scanner.Text()
+
+		//构建命令
+		s := []string{app.Name}
+
+		//获取命令
+		cmdArgs := strings.Split(input, " ")
+		if len(cmdArgs) == 0 {
+			continue
+		}
+
+		s = append(s, cmdArgs...)
+		app.Run(s)
+	}
+}
+
+//执行
+func startCmd(c *cli.Context) error {
+	scriptPath := c.Args().First()
+
 	//解析root脚本
 	cfg := &meta.FetchConfig{
-		ScriptPath: "D://DEV/GoProject/matrix-seeker/script-example/七丽时尚",
-		HttpUrl:    "http://www.7y7.com/qinggan/",
-		TimeOut:    time.Second * 10,
+		ScriptPath: scriptPath,
+		TimeOut:    time.Second * 60,
 	}
 
 	root := script.CreateLinkNode(cfg.ScriptPath, "root.json")
@@ -48,10 +87,12 @@ func main() {
 
 	//存储(本地存储) ,默认当前目录下out文件夹
 	at := &artifact.Persistent{
-		OutputDir: "D:/seeker/out",
+		OutputDir: scriptPath + "/out",
 		WaitGroup: &sync.WaitGroup{},
 	}
 
 	//执行
 	ft.Execute(root, at)
+
+	return nil
 }

@@ -124,10 +124,10 @@ func LoadContext(fileDir string, scriptName string) (*otto.Otto, error) {
 
 	//javascript 虚拟执行环境
 	vm := otto.New()
-	ok, err := vm.Run(script)
+	value, err := vm.Run(script)
 
-	fmt.Println(ok)
 	if err != nil {
+		log.Println(value)
 		log.Println(fmt.Sprintf("脚本文件[%s]初始化异常:[%s]", scriptName, err.Error()))
 		return nil, err
 	}

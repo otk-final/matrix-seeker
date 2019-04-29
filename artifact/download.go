@@ -17,14 +17,9 @@ import (
 func (at *Persistent) CreateImgTask(fileDir string, referer string, imgUrl string) {
 	defer at.WaitGroup.Done()
 
-	u, err := url.Parse(imgUrl)
-	if err != nil {
-		return
-	}
-
-	//去掉最左边的'/'
-	tmp := strings.TrimLeft(u.Path, "/")
-	imgPath := fileDir + strings.ToLower(strings.Replace(tmp, "/", "-", -1))
+	imgRune := []rune(imgUrl)[strings.LastIndex(imgUrl, "/")+1:]
+	//imgName := string(imgRune)
+	imgPath := fileDir + "/" + string(imgRune)
 
 	//检查文件是否存在
 	if imgFile, _ := os.Stat(imgPath); imgFile != nil {

@@ -1,12 +1,12 @@
 package seeker
 
 import (
+	"errors"
 	"fmt"
+	"log"
 	"matrix-seeker/artifact"
 	"matrix-seeker/meta"
 	"matrix-seeker/script"
-	"net/http"
-	"net/url"
 	"sync"
 	"time"
 )
@@ -16,6 +16,12 @@ import (
  */
 
 func (f *FetchContext) Execute(root *meta.FetchNode, ap *artifact.Persistent) {
+
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println(err)
+		}
+	}()
 
 	if root.Name == "" {
 		root.Name = "ROOT"
@@ -39,6 +45,9 @@ func (f *FetchContext) Execute(root *meta.FetchNode, ap *artifact.Persistent) {
 
 	//通知持久化
 	ap.Bulk(root)
+
+	log.Println(fmt.Sprintf("输出[%s]", ap.OutputDir))
+	log.Println("结束...")
 }
 
 func (f *FetchContext) startRoot(root *meta.FetchNode) {
@@ -46,15 +55,8 @@ func (f *FetchContext) startRoot(root *meta.FetchNode) {
 	//优先读取脚本初始化请求
 	req := script.CreateRequest(root, nil, f.JsVm, "startRoot", nil)
 	if req == nil {
-		url, err := url.ParseRequestURI(f.Config.HttpUrl)
-		if err != nil {
-			return
-		}
-		//构建请求
-		req = &http.Request{
-			Method: "GET",
-			URL:    url,
-		}
+		panic(errors.New("脚本初始化请求错误"))
+		return
 	}
 
 	//执行
