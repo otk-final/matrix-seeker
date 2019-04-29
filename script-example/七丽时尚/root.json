@@ -16,7 +16,7 @@
     ]
   },
   "event": {
-    "link1": {
+    "link": {
       "funcName": "builderClassifyHome",
       "next": "classify-page.json"
     }
