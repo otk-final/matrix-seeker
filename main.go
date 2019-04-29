@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"fmt"
 	"github.com/urfave/cli"
+	"io"
 	"log"
 	"matrix-seeker/artifact"
 	"matrix-seeker/meta"
@@ -64,7 +66,8 @@ func main() {
 }
 
 //执行
-func startCmd(c *cli.Context) error {
+func startCmd(c *cli.Context) {
+
 	scriptPath := c.Args().First()
 
 	//解析root脚本
@@ -91,8 +94,16 @@ func startCmd(c *cli.Context) error {
 		WaitGroup: &sync.WaitGroup{},
 	}
 
+	logFile, err := os.OpenFile(at.OutputDir+"/"+"seeker.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+	if err != nil {
+		log.Println(fmt.Sprintf("日志文件加载失败:[%s]", err.Error()))
+		return
+	}
+	defer logFile.Close()
+
+	//设置目录
+	log.SetOutput(io.MultiWriter(logFile, os.Stdout))
+
 	//执行
 	ft.Execute(root, at)
-
-	return nil
 }

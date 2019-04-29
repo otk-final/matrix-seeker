@@ -24,11 +24,6 @@ replace golang.org/x/text => github.com/golang/text v0.3.1-0.20190410012825-f490
 
 require (
 	github.com/PuerkitoBio/goquery v1.5.0
-	github.com/gdamore/tcell v1.1.1 // indirect
-	github.com/lucasb-eyer/go-colorful v1.0.2 // indirect
-	github.com/nsf/termbox-go v0.0.0-20190325093121-288510b9734e
-	github.com/rivo/tview v0.0.0-20190406182340-90b4da1bd64c
-	github.com/rivo/uniseg v0.0.0-20190313204849-f699dde9c340 // indirect
 	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
 	github.com/satori/go.uuid v1.2.0
 	github.com/urfave/cli v1.20.0
