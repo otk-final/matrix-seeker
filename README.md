@@ -27,15 +27,15 @@
 > name 当前节点名称（用户输出到同一文件目录）  
 > bind.position  当前页面定位  
 > bind.fields  元素集  
->> field.selector  goquery选择器语法 (基于position子节点)
+>> field.selector  goquery选择器语法 (基于position子节点)  
 >> field.findType  查找类型（[text]:文本,[html]:内容,[attr:?]属性    
->> field.actionType  download 如果当前抓取的值是图片地址，需下载图片则标记为download
+>> field.actionType  download 如果当前抓取的值是图片地址，需下载图片则标记为download  
 >> field.valueType  值类型 '[],数组','_,默认','{},对象'  
->> field.mapper  映射标识
+>> field.mapper  映射标识  
 >  
 > event.link 跳转事件  
 >> link.funcName 生成跳转请求函数  
->> link.next 下一个新的节点页面
+>> link.next 下一个新的节点页面  
 >    
 > event.pageable 分页事件  
 >> pageable.funcName 生成分页请求函数  
