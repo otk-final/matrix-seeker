@@ -1,0 +1,19 @@
+{
+  "name": "详情页",
+  "bind": {
+    "position": ".article",
+    "fields": [
+      {
+        "selector": ".content",
+        "findType": "html",
+        "mapper": "content"
+      },
+      {
+        "selector": ".content>.tags>a",
+        "findType": "text",
+        "valueType": "[]",
+        "mapper": "tags"
+      }
+    ]
+  }
+}

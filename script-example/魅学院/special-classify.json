@@ -1,0 +1,24 @@
+{
+  "name": "专区分类",
+  "bind": {
+    "position": ".content>.item-wrap",
+    "fields": [
+      {
+        "selector": ".item>a:nth-child(2)",
+        "findType": "attr:href",
+        "mapper": "specialUrl"
+      },
+      {
+        "selector": ".item>a:nth-child(2)",
+        "findType": "text",
+        "mapper": "specialName"
+      }
+    ]
+  },
+  "event": {
+    "link1": {
+      "funcName": "specialClassifyListLink",
+      "next": "special-classify-list.json"
+    }
+  }
+}

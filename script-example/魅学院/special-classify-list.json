@@ -1,0 +1,39 @@
+{
+  "name": "专区分页列表",
+  "bind": {
+    "position": ".article-list li",
+    "fields": [
+      {
+        "selector": "a",
+        "findType": "attr:href",
+        "mapper": "contentUrl"
+      },
+      {
+        "selector": "a",
+        "findType": "attr:title",
+        "mapper": "title"
+      },
+      {
+        "selector": "a>.img>img",
+        "findType": "attr:src",
+        "mapper": "coverUrl"
+      },
+      {
+        "selector": "a>.content>p",
+        "findType": "text",
+        "mapper": "description"
+      }
+    ]
+  },
+  "event": {
+    "link": {
+      "funcName": "contentLink",
+      "next": "content.json"
+    },
+    "pageable": {
+      "funcName": "specialClassifyListPage",
+      "beginIndex": 1,
+      "endIndex": 8
+    }
+  }
+}
