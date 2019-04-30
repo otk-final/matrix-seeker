@@ -1,7 +1,7 @@
 # matrix-seeker
 矩阵爬虫
 ### 设计
-![原型](https://github.com/otk-final/matrix-seeker/tree/master/script-example/img/design.png)
+![原型](https://github.com/otk-final/matrix-seeker/blob/master/script-example/img/design.png)
 * 深度 **Depth**  
  请求数据 > 生成dom > **矩阵**
 --- 
@@ -22,7 +22,7 @@
 所有脚本文件需放在同一目录下,**必须有含有一个(root.json)作为根节点** 
 
 **页面定位**  
-![示例](https://github.com/otk-final/matrix-seeker/tree/master/script-example/img/nodeJson.png)
+![示例](https://github.com/otk-final/matrix-seeker/blob/master/script-example/img/nodeJson.png)
 
 > name 当前节点名称（用户输出到同一文件目录）  
 > bind.position  当前页面定位  
@@ -129,8 +129,8 @@ let fromReq = {
 * 爬取日志文件位于当前项目路径out/seeker.log
 
 执行matrix-seeker.exe 执行(window64位)如下
-![开始](https://github.com/otk-final/matrix-seeker/tree/master/script-example/img/start.png)
-![结束](https://github.com/otk-final/matrix-seeker/tree/master/script-example/img/finish.png)
+![开始](https://github.com/otk-final/matrix-seeker/blob/master/script-example/img/start.png)
+![结束](https://github.com/otk-final/matrix-seeker/blob/master/script-example/img/finish.png)
 
 ## Feature
 
