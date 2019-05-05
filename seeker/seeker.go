@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
 	"github.com/robertkrimen/otto"
+	"golang.org/x/net/html/charset"
 	"log"
 	"matrix-seeker/meta"
 	"matrix-seeker/script"
@@ -246,11 +247,15 @@ func httpCall(req *http.Request) (*goquery.Document, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
+	read, err := charset.NewReader(resp.Body, resp.Header.Get("ContentType"))
+	if err != nil {
+		return nil, err
+	}
 
 	log.Println(fmt.Sprintf("请求[%v]", req.URL.String()))
 
 	//解析dom
-	dom, err := goquery.NewDocumentFromReader(resp.Body)
+	dom, err := goquery.NewDocumentFromReader(read)
 	if err != nil {
 		return nil, err
 	}
