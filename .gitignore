@@ -7,3 +7,6 @@
 *.iml
 out
 gen
+/go.sum
+/.idea/vcs.xml
+/script-example/七丽时尚-爬取结果.zip

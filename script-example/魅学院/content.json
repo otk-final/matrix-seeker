@@ -5,7 +5,7 @@
     "fields": [
       {
         "selector": ".content",
-        "findType": "html",
+        "findType": "text",
         "mapper": "content"
       },
       {

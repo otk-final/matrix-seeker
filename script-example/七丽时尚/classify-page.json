@@ -42,7 +42,7 @@
     },
     "pageable": {
       "funcName": "builderClassifyPage",
-      "beginIndex": 2,
+      "beginIndex": 1,
       "endIndex": 8
     }
   }

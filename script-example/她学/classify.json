@@ -1,0 +1,24 @@
+{
+  "name": "分类",
+  "bind": {
+    "position": "a[class='hd-txt']",
+    "fields": [
+      {
+        "selector": "",
+        "findType": "attr:href",
+        "mapper": "groupUrl"
+      },
+      {
+        "selector": ".h3-one",
+        "findType": "text",
+        "mapper": "groupName"
+      }
+    ]
+  },
+  "event": {
+    "link": {
+      "funcName": "page2",
+      "next": "list.json"
+    }
+  }
+}

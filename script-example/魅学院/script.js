@@ -39,5 +39,27 @@ function specialClassifyListLink(node, fromReq, arg) {
 //
 function specialClassifyListPage(node, fromReq, arg) {
     var fromUrl = fromReq.url;
-    console.info("fromUrl:" + fromUrl);
+
+    var path = fromUrl.substring(fromUrl.lastIndexOf('/') + 1);
+    var pathArray = path.split('-');
+    var nextPath = pathArray[0] + "-" + pathArray[1] + "-" + arg + ".html";
+
+    console.info("nextUrl:" + Host + nextPath);
+
+    var nextReq = {
+        url: Host + nextPath,
+        method: "GET"
+    };
+    return nextReq;
+}
+
+//详情页
+function contentLink(node, fromReq, arg) {
+    var contentUrl = arg['contentUrl'];
+
+    var nextReq = {
+        url: Host + contentUrl,
+        method: "GET"
+    };
+    return nextReq;
 }

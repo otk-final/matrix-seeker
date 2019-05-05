@@ -1,0 +1,39 @@
+{
+  "name": "分类列表",
+  "bind": {
+    "position": ".article .black2_l",
+    "fields": [
+      {
+        "selector": "a>img",
+        "findType": "attr:src",
+        "mapper": "convertUrl",
+        "actionType": "download"
+      },{
+        "selector": "a",
+        "findType": "attr:href",
+        "mapper": "contentUrl"
+      },
+      {
+        "selector": ".list_con>a",
+        "findType": "text",
+        "mapper": "title"
+      },
+      {
+        "selector": ".list_con>p",
+        "findType": "text",
+        "mapper": "description"
+      }
+    ]
+  },
+  "event": {
+    "link": {
+      "funcName": "page3",
+      "next": "content.json"
+    },
+    "pageable": {
+      "funcName": "page2ForPageable",
+      "beginIndex": 1,
+      "endIndex": 20
+    }
+  }
+}

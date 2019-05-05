@@ -1,0 +1,24 @@
+{
+  "name": "首页",
+  "bind": {
+    "position": ".black3_t_r a",
+    "fields": [
+      {
+        "selector": "",
+        "findType": "attr:href",
+        "mapper": "classifyUrl"
+      },
+      {
+        "selector": "",
+        "findType": "text",
+        "mapper": "classifyName"
+      }
+    ]
+  },
+  "event": {
+    "link": {
+      "funcName": "page1",
+      "next": "classify.json"
+    }
+  }
+}

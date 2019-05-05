@@ -2,6 +2,7 @@ package artifact
 
 import (
 	"container/list"
+	"crypto/md5"
 	"encoding/json"
 	"fmt"
 	uuid "github.com/satori/go.uuid"
@@ -27,8 +28,16 @@ func (at *Persistent) bulkOf(node *meta.FetchNode) {
 		return
 	}
 
+	//构建文件名（默认以node.Referer 做摘要)
+	fileName := ""
+	if node.Referer == "" {
+		fileName = uuid.NewV4().String()
+	} else {
+		fileName = fmt.Sprintf("%x", md5.Sum([]byte(node.Referer)))
+	}
+
 	//根据当前节点名称，定位目录结构
-	paths := []string{at.OutputDir, node.Name, uuid.NewV4().String() + ".json"}
+	paths := []string{at.OutputDir, node.Name, fileName + ".json"}
 	nodePath := strings.Join(paths, "/")
 
 	//fmt.Println(fmt.Sprintf("Referer[%s]", node.Referer))
@@ -43,8 +52,17 @@ func (at *Persistent) bulkOf(node *meta.FetchNode) {
 		go at.CreateImgTask(currDir+"/素材/", node.Referer, dv)
 	}
 
+	//文件格式
+	storeData := struct {
+		Referer string              `json:"referer"`
+		Data    [][]*meta.FetchData `json:"data"`
+	}{
+		Referer: node.Referer,
+		Data:    node.Data,
+	}
+
 	//将内容转换为json格式存储
-	nodeByte, err := json.Marshal(node.Data)
+	nodeByte, err := json.Marshal(storeData)
 	if err != nil {
 		return
 	}

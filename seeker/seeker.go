@@ -1,6 +1,7 @@
 package seeker
 
 import (
+	"crypto/tls"
 	"errors"
 	"fmt"
 	"github.com/PuerkitoBio/goquery"
@@ -148,6 +149,11 @@ func (f *FetchContext) CreateMatrixHandler(node *meta.FetchNode, req *http.Reque
 		fetchArray := make([][]*meta.FetchData, 0)
 		//定位
 		selector := dom.Find(node.Bind.Position)
+
+		log.Println("-------------------[" + node.Bind.Position + "]-------------------")
+		log.Println(selector.Html())
+		log.Println("-------------------[" + node.Bind.Position + "]-------------------")
+
 		//遍历执行
 		selector.Each(func(i int, selection *goquery.Selection) {
 			fetchData := make([]*meta.FetchData, 0)
@@ -238,8 +244,12 @@ func (f *FetchContext) CreateMatrixHandler(node *meta.FetchNode, req *http.Reque
 
 func httpCall(req *http.Request) (*goquery.Document, error) {
 
+	transCfg := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // disable verify
+	}
+
 	//请求
-	client := &http.Client{Timeout: time.Second * 60}
+	client := &http.Client{Transport: transCfg, Timeout: time.Second * 180}
 
 	//执行
 	resp, err := client.Do(req)
@@ -267,6 +277,10 @@ var findHandler = func(fs string, tp string, _s *goquery.Selection) (string, err
 	if fs != "" {
 		_s = _s.Find(fs)
 	}
+
+	//log.Println("-------------------[" + fs + "]-------------------")
+	//log.Println(_s.Html())
+	//log.Println("-------------------[" + fs + "]-------------------")
 
 	//结果
 	if tp == meta.FindText { //纯文本

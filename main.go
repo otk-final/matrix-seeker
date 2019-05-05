@@ -11,7 +11,6 @@ import (
 	"matrix-seeker/script"
 	"matrix-seeker/seeker"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -96,9 +95,8 @@ func startCmd(c *cli.Context) {
 	}
 
 	//判断文件夹是否存在
-	fileDir := filepath.Dir(at.OutputDir)
-	if _, err := os.Stat(fileDir); os.IsNotExist(err) {
-		os.MkdirAll(fileDir, os.ModePerm)
+	if _, err := os.Stat(at.OutputDir); os.IsNotExist(err) {
+		os.MkdirAll(at.OutputDir, os.ModePerm)
 	}
 
 	logFile, err := os.OpenFile(at.OutputDir+"/"+"seeker.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)

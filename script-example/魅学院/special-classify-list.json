@@ -16,7 +16,8 @@
       {
         "selector": "a>.img>img",
         "findType": "attr:src",
-        "mapper": "coverUrl"
+        "mapper": "coverUrl",
+        "actionType": "download"
       },
       {
         "selector": "a>.content>p",
@@ -33,7 +34,7 @@
     "pageable": {
       "funcName": "specialClassifyListPage",
       "beginIndex": 1,
-      "endIndex": 8
+      "endIndex": 30
     }
   }
 }
