@@ -95,8 +95,22 @@ func CreateLinkNode(scriptDir string, fileName string) *meta.FetchNode {
 	return &jsonNode
 }
 
+/*
+	通过节点名称获取节点配置
+*/
 func FindLinkNode(scriptDir string, nodeName string) *meta.FetchNode {
-
+	rd, _ := ioutil.ReadDir(scriptDir)
+	for _, f := range rd {
+		if f.IsDir() || !strings.HasSuffix(f.Name(), ".json") {
+			continue
+		}
+		//生成节点
+		node := CreateLinkNode(scriptDir, f.Name())
+		//判断名称
+		if nodeName == node.Name {
+			return node
+		}
+	}
 	return nil
 }
 

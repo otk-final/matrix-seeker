@@ -7,15 +7,47 @@ import (
 	"matrix-seeker/artifact"
 	"matrix-seeker/meta"
 	"matrix-seeker/script"
-	"sync"
+	"net/http"
+	"net/url"
 	"time"
 )
 
-func (f *FetchContext) Reload(root *meta.FileFetchData, ap *artifact.Persistent) {
+func (f *FetchContext) Reload(currNode *meta.FetchNode, loads []*meta.FileFetchData, ap *artifact.Persistent) {
 
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println(err)
+		}
+	}()
+
+	f.CtxWait.Add(1)
+	//遍历执行
+	go func() {
+		defer f.CtxWait.Done()
+		for _, fileData := range loads {
+
+			//反序列化当前req
+			url, _ := url.Parse(fileData.Referer)
+			req := &http.Request{URL: url}
+
+			f.eachCall(currNode, req, fileData.Data)
+		}
+	}()
+
+	//开启监控任务（异步消费）
+	go f.monitor()
+
+	//任务是否完成
+	f.finish()
+
+	//通知持久化
+	ap.Bulk(currNode)
+
+	log.Println(fmt.Sprintf("输出[%s]", ap.OutputDir))
+	log.Println("结束...")
 }
 
-func (f *FetchContext) Execute(root *meta.FetchNode, ap *artifact.Persistent) {
+func (f *FetchContext) Start(root *meta.FetchNode, ap *artifact.Persistent) {
 
 	defer func() {
 		if err := recover(); err != nil {
@@ -26,13 +58,6 @@ func (f *FetchContext) Execute(root *meta.FetchNode, ap *artifact.Persistent) {
 	if root.Name == "" {
 		root.Name = "ROOT"
 	}
-
-	//构建信道
-	f.wideChan = make(chan *WideHandler, 1)
-	f.depthChan = make(chan *DepthHandler, 1)
-	f.matrixChan = make(chan *MatrixHandler, 1)
-	//全局锁，标识所有连接都执行完成
-	f.ctxWait = &sync.WaitGroup{}
 
 	//初始请求(同步)
 	f.startRoot(root)
@@ -60,17 +85,17 @@ func (f *FetchContext) startRoot(root *meta.FetchNode) {
 	}
 
 	//执行
-	f.depthChan <- f.CreateDepthHandler(root, req)
+	f.DepthChan <- f.CreateDepthHandler(root, req)
 }
 
 func (f *FetchContext) finish() {
 
 	//等待所有任务行为完成
-	f.ctxWait.Wait()
+	f.CtxWait.Wait()
 
-	close(f.wideChan)
-	close(f.depthChan)
-	close(f.matrixChan)
+	close(f.WideChan)
+	close(f.DepthChan)
+	close(f.MatrixChan)
 
 	f.finished = true
 
@@ -88,15 +113,15 @@ func (f *FetchContext) monitor() {
 		select {
 		case <-time.After(time.Second * 10):
 			fmt.Println("-------------------------wait-------------------------")
-		case mc, ok := <-f.matrixChan: //矩阵
+		case mc, ok := <-f.MatrixChan: //矩阵
 			if ok {
 				go mc.Fetch()
 			}
-		case dc, ok := <-f.depthChan: //深度
+		case dc, ok := <-f.DepthChan: //深度
 			if ok {
 				go dc.Fetch()
 			}
-		case wc, ok := <-f.wideChan: //广度
+		case wc, ok := <-f.WideChan: //广度
 			if ok {
 				go wc.Fetch()
 			}

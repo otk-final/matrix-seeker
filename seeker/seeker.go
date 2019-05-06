@@ -19,11 +19,11 @@ import (
 type FetchContext struct {
 	Config     *meta.FetchConfig
 	JsVm       *otto.Otto
-	ctxWait    *sync.WaitGroup
+	CtxWait    *sync.WaitGroup
 	finished   bool
-	wideChan   chan *WideHandler
-	matrixChan chan *MatrixHandler
-	depthChan  chan *DepthHandler
+	WideChan   chan *WideHandler
+	MatrixChan chan *MatrixHandler
+	DepthChan  chan *DepthHandler
 }
 
 /*
@@ -54,18 +54,18 @@ type DepthHandler struct {
 }
 
 func (f *FetchContext) CreateDepthHandler(node *meta.FetchNode, req *http.Request) *DepthHandler {
-	f.ctxWait.Add(1)
+	f.CtxWait.Add(1)
 
 	d := &DepthHandler{
 		node: node,
 	}
 
 	d.Fetch = func() {
-		defer f.ctxWait.Done()
+		defer f.CtxWait.Done()
 
 		//优先判断广度
 		if node.Event != nil && node.Event.Pageable != nil {
-			f.wideChan <- f.CreateWideHandler(node, req)
+			f.WideChan <- f.CreateWideHandler(node, req)
 			return
 		}
 
@@ -76,19 +76,19 @@ func (f *FetchContext) CreateDepthHandler(node *meta.FetchNode, req *http.Reques
 			return
 		}
 		//矩阵搜索
-		f.matrixChan <- f.CreateMatrixHandler(node, req, doc)
+		f.MatrixChan <- f.CreateMatrixHandler(node, req, doc)
 	}
 	return d
 }
 
 func (f *FetchContext) CreateWideHandler(node *meta.FetchNode, req *http.Request) *WideHandler {
-	f.ctxWait.Add(1)
+	f.CtxWait.Add(1)
 
 	w := &WideHandler{
 		node: node,
 	}
 	w.Fetch = func() {
-		defer f.ctxWait.Done()
+		defer f.CtxWait.Done()
 
 		pageWait := &sync.WaitGroup{}
 		//轮询执行
@@ -125,7 +125,7 @@ func (f *FetchContext) CreateWideHandler(node *meta.FetchNode, req *http.Request
 				}
 
 				//对结果集添加到矩阵通道中，由矩阵处理
-				f.matrixChan <- f.CreateMatrixHandler(copyNode, req, doc)
+				f.MatrixChan <- f.CreateMatrixHandler(copyNode, req, doc)
 			}(startIndex, copyNode, pageWait)
 
 			//下一页
@@ -138,13 +138,13 @@ func (f *FetchContext) CreateWideHandler(node *meta.FetchNode, req *http.Request
 }
 
 func (f *FetchContext) CreateMatrixHandler(node *meta.FetchNode, req *http.Request, dom *goquery.Document) *MatrixHandler {
-	f.ctxWait.Add(1)
+	f.CtxWait.Add(1)
 
 	m := &MatrixHandler{
 		node: node,
 	}
 	m.Fetch = func() {
-		defer f.ctxWait.Done()
+		defer f.CtxWait.Done()
 
 		fetchArray := make([][]*meta.FetchData, 0)
 		//定位
@@ -208,40 +208,45 @@ func (f *FetchContext) CreateMatrixHandler(node *meta.FetchNode, req *http.Reque
 		if len(fetchArray) == 0 {
 			return
 		}
-
 		//添加值
 		node.AppendData(fetchArray)
 
-		event := node.Event
-		//判断当前节点是否需要深度抓取
-		if event == nil || event.Link == nil {
-			return
-		}
-
-		//通过当前节点中的link.next指向的下一个规则判断
-		depthNode := script.CreateLinkNode(f.Config.ScriptPath, event.Link.Next)
-
-		//遍历进行深度抓取
-		for _, v := range fetchArray {
-
-			tmpNode := depthNode.CopySelf()
-			node.AddChild(tmpNode)
-
-			//构建每一个条目的请求
-			req := script.CreateRequest(tmpNode, req, f.JsVm, event.Link.FuncName, v)
-			if req == nil {
-				continue
-			}
-			//对每个节点设置请求路径
-			tmpNode.Referer = req.URL.String()
-			//缓存上级值得来源
-			tmpNode.From = v
-
-			//创建深度实现
-			f.depthChan <- f.CreateDepthHandler(tmpNode, req)
-		}
+		//遍历
+		f.eachCall(node, req, fetchArray)
 	}
 	return m
+}
+
+func (f *FetchContext) eachCall(currNode *meta.FetchNode, req *http.Request, fetchArray [][]*meta.FetchData) {
+
+	event := currNode.Event
+	//判断当前节点是否需要深度抓取
+	if event == nil || event.Link == nil {
+		return
+	}
+
+	//通过当前节点中的link.next指向的下一个规则判断
+	depthNode := script.CreateLinkNode(f.Config.ScriptPath, event.Link.Next)
+
+	//遍历进行深度抓取
+	for _, v := range fetchArray {
+
+		tmpNode := depthNode.CopySelf()
+		currNode.AddChild(tmpNode)
+
+		//构建每一个条目的请求
+		req := script.CreateRequest(tmpNode, req, f.JsVm, event.Link.FuncName, v)
+		if req == nil {
+			continue
+		}
+		//对每个节点设置请求路径
+		tmpNode.Referer = req.URL.String()
+		//缓存上级值得来源
+		tmpNode.From = v
+
+		//创建深度实现
+		f.DepthChan <- f.CreateDepthHandler(tmpNode, req)
+	}
 }
 
 func httpCall(req *http.Request) (*goquery.Document, error) {
