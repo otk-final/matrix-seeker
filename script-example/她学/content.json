@@ -12,6 +12,12 @@
         "selector": ".wenConDes",
         "findType": "text",
         "mapper": "content"
+      },
+      {
+        "selector": ".wenConDes img",
+        "findType": "attr:src",
+        "valueType": "[]",
+        "mapper": "imgArray"
       }
     ]
   }
