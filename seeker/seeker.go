@@ -234,6 +234,8 @@ func (f *FetchContext) CreateMatrixHandler(node *meta.FetchNode, req *http.Reque
 			}
 			//对每个节点设置请求路径
 			tmpNode.Referer = req.URL.String()
+			//缓存上级值得来源
+			tmpNode.From = v
 
 			//创建深度实现
 			f.depthChan <- f.CreateDepthHandler(tmpNode, req)

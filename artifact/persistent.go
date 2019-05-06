@@ -53,12 +53,10 @@ func (at *Persistent) bulkOf(node *meta.FetchNode) {
 	}
 
 	//文件格式
-	storeData := struct {
-		Referer string              `json:"referer"`
-		Data    [][]*meta.FetchData `json:"data"`
-	}{
+	storeData := &meta.FileFetchData{
 		Referer: node.Referer,
 		Data:    node.Data,
+		From:    node.From,
 	}
 
 	//将内容转换为json格式存储

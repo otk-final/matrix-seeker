@@ -95,6 +95,11 @@ func CreateLinkNode(scriptDir string, fileName string) *meta.FetchNode {
 	return &jsonNode
 }
 
+func FindLinkNode(scriptDir string, nodeName string) *meta.FetchNode {
+
+	return nil
+}
+
 /*
 	加载脚本文件
 */

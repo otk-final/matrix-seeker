@@ -11,9 +11,9 @@ import (
 	"time"
 )
 
-/*
+func (f *FetchContext) Reload(root *meta.FileFetchData, ap *artifact.Persistent) {
 
- */
+}
 
 func (f *FetchContext) Execute(root *meta.FetchNode, ap *artifact.Persistent) {
 

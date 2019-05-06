@@ -27,5 +27,6 @@ require (
 	github.com/robertkrimen/otto v0.0.0-20180617131154-15f95af6e78d
 	github.com/satori/go.uuid v1.2.0
 	github.com/urfave/cli v1.20.0
+	golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
 	gopkg.in/sourcemap.v1 v1.0.5 // indirect
 )
