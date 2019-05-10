@@ -9,6 +9,7 @@ import (
 
 type FetchConfig struct {
 	ScriptPath string
+	Interval   time.Duration
 	TimeOut    time.Duration
 }
 

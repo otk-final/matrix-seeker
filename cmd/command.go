@@ -34,8 +34,17 @@ func InitCli() *cli.App {
 		Name:   "reload",
 		Usage:  "重新加载执行",
 		Action: reloadCmd,
+	}, {
+		Name:   "set",
+		Usage:  "全局参数设置",
+		Action: globalCmd,
+		Flags: []cli.Flag{
+			cli.IntFlag{
+				Name:  "interval",
+				Usage: "请求间隔(秒)",
+			},
+		},
 	}}
-
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Fatal(err)
@@ -43,20 +52,21 @@ func InitCli() *cli.App {
 	return app
 }
 
-func initContext(scriptPath string) (*seeker.FetchContext, *artifact.Persistent, *os.File) {
+func initContext(c *cli.Context, scriptPath string) (*seeker.FetchContext, *artifact.Persistent, *os.File) {
 	//解析root脚本
 	cfg := &meta.FetchConfig{
 		ScriptPath: scriptPath,
 		TimeOut:    time.Second * 60,
+		Interval:   interval,
 	}
 
 	//初始化上下文
 	ft := &seeker.FetchContext{
 		Config: cfg,
 		//构建信道
-		WideChan:   make(chan *seeker.WideHandler, 1),
-		DepthChan:  make(chan *seeker.DepthHandler, 1),
-		MatrixChan: make(chan *seeker.MatrixHandler, 1),
+		WideChan:   make(chan *seeker.WideHandler, 20),
+		DepthChan:  make(chan *seeker.DepthHandler, 20),
+		MatrixChan: make(chan *seeker.MatrixHandler, 20),
 		//全局锁，标识所有连接都执行完成
 		CtxWait: &sync.WaitGroup{},
 	}
@@ -90,6 +100,15 @@ func initContext(scriptPath string) (*seeker.FetchContext, *artifact.Persistent,
 	return ft, at, logFile
 }
 
+var interval time.Duration
+
+func globalCmd(c *cli.Context) {
+
+	//参数
+	name := c.FlagNames()[0]
+	interval = time.Second * time.Duration(c.Int(name))
+}
+
 //执行
 func startCmd(c *cli.Context) {
 
@@ -97,7 +116,7 @@ func startCmd(c *cli.Context) {
 	scriptPath := c.Args().First()
 
 	//初始化
-	ft, at, logFile := initContext(scriptPath)
+	ft, at, logFile := initContext(c, scriptPath)
 	defer logFile.Close()
 
 	//创建根节点
@@ -137,15 +156,11 @@ func reloadCmd(c *cli.Context) {
 	}
 
 	//初始化
-	ft, at, logFile := initContext(scriptPath)
+	ft, at, logFile := initContext(c, scriptPath)
 	defer logFile.Close()
 
 	//执行
 	ft.Reload(linkNode, allData, at)
-}
-
-func downloadCmd(c *cli.Context) {
-
 }
 
 func loadFetchData(jsonPath string, jsonFile os.FileInfo) (string, string, []*meta.FileFetchData) {

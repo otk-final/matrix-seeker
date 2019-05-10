@@ -111,8 +111,6 @@ func (f *FetchContext) monitor() {
 		}
 
 		select {
-		case <-time.After(time.Second * 10):
-			fmt.Println("-------------------------wait-------------------------")
 		case mc, ok := <-f.MatrixChan: //矩阵
 			if ok {
 				go mc.Fetch()
@@ -127,6 +125,11 @@ func (f *FetchContext) monitor() {
 			}
 		default:
 			break
+		}
+
+		//线程堵塞等待
+		if f.Config.Interval > 0 {
+			<-time.After(f.Config.Interval)
 		}
 	}
 
