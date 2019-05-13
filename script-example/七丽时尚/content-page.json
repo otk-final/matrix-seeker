@@ -1,29 +1,50 @@
 {
-	"name": "详情",
-	"bind":{
-		"position":"div[class='artcont']",
-		"fields":[{
-			"selector":"div[class='artitle']>h1",
-			"findType":"text",
-			"mapper":"title"
-		},{
-			"selector":"div[class='art-auther'] span:nth-child(1)",
-			"findType":"text",
-			"mapper":"createDate"
-		},{
-			"selector":"div[class='art-auther'] span:nth-child(2)",
-			"findType":"text",
-			"mapper":"formWhere"
-		},{
-			"selector":"div[class='art-body']>div[class='all_img']",
-			"findType":"text",
-			"mapper":"content"
-		},{
-			"selector":"div[class='art-body']>div[class='all_img'] img",
-			"findType":"attr:src",
-			"actionType":"download",
-			"valueType":"[]",
-			"mapper":"content_imgs"
-		}]
-	}
+  "name": "详情",
+  "bind": {
+    "position": "div[class='artcont']",
+    "fields": [
+      {
+        "selector": "div[class='artitle']>h1",
+        "findType": "text",
+        "mapper": "title"
+      },
+      {
+        "selector": "div[class='art-auther'] span:nth-child(1)",
+        "findType": "text",
+        "mapper": "createDate"
+      },
+      {
+        "selector": "div[class='art-auther'] span:nth-child(2)",
+        "findType": "text",
+        "mapper": "formWhere"
+      },
+      {
+        "selector": "div[class='art-body']>div[class='all_img']",
+        "findType": "text",
+        "mapper": "content"
+      },
+      {
+        "selector": "div[class='art-body']>div[class='all_img'] img",
+        "findType": "attr:src",
+        "actionType": "download",
+        "valueType": "[]",
+        "mapper": "imgArray"
+      }
+    ]
+  },
+  "global": {
+    "position": "head",
+    "fields": [
+      {
+        "selector": "meta[name='keywords']",
+        "findType": "attr:content",
+        "mapper": "head-keywords"
+      },
+      {
+        "selector": "meta[name='description']",
+        "findType": "attr:content",
+        "mapper": "head-description"
+      }
+    ]
+  }
 }

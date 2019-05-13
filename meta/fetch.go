@@ -14,15 +14,18 @@ type FetchConfig struct {
 }
 
 type FetchNode struct {
-	Count     int //子节点个数
-	Level     int //层级
-	Referer   string
-	Name      string     `json:"name"` //名称
-	Bind      *NodeBind  `json:"bind"`
-	Event     *NodeEvent `json:"event"`
-	Data      [][]*FetchData
-	From      []*FetchData
-	Childrens []*FetchNode `json:"childrens"` //子节点
+	Count        int //子节点个数
+	Level        int //层级
+	Referer      string
+	Name         string     `json:"name"`   //名称
+	BindMapper   *NodeBind  `json:"bind"`   //内容
+	GlobalMapper *NodeBind  `json:"global"` //内容
+	Event        *NodeEvent `json:"event"`
+
+	BindData   [][]*FetchData
+	GlobalData [][]*FetchData
+	FromData   []*FetchData
+	Childrens  []*FetchNode `json:"childrens"` //子节点
 }
 
 type FetchData struct {
@@ -34,24 +37,27 @@ type FileFetchData struct {
 	Referer string         `json:"referer"`
 	Data    [][]*FetchData `json:"data"`
 	From    []*FetchData   `json:"from"`
+	Global  [][]*FetchData `json:"global"`
 }
 
 func (node *FetchNode) CopySelf() *FetchNode {
 	return &FetchNode{
-		Referer:   node.Referer,
-		Name:      node.Name,
-		Count:     node.Count,
-		Level:     node.Level,
-		Bind:      node.Bind,
-		Event:     node.Event,
-		From:      node.From,
-		Data:      make([][]*FetchData, 0),
-		Childrens: make([]*FetchNode, 0),
+		Referer:      node.Referer,
+		Name:         node.Name,
+		Count:        node.Count,
+		Level:        node.Level,
+		BindMapper:   node.BindMapper,
+		GlobalMapper: node.GlobalMapper,
+		Event:        node.Event,
+		FromData:     node.FromData,
+		GlobalData:   make([][]*FetchData, 0),
+		BindData:     make([][]*FetchData, 0),
+		Childrens:    make([]*FetchNode, 0),
 	}
 }
 
 func (node *FetchNode) AppendData(temp [][]*FetchData) {
-	node.Data = append(node.Data, temp...)
+	node.BindData = append(node.BindData, temp...)
 
 	by, _ := json.Marshal(temp)
 	log.Println(fmt.Sprintf("数据:%s", by))
@@ -73,7 +79,7 @@ func (node *FetchNode) AddChild(subs ...*FetchNode) {
 //获取字段
 func (node *FetchNode) getActionFields(actionType string) map[string]interface{} {
 	fields := make(map[string]interface{}, 0)
-	for _, field := range node.Bind.Fields {
+	for _, field := range node.BindMapper.Fields {
 		if field.ActionType == actionType {
 			fields[field.Mapper] = "ok"
 		}
@@ -107,7 +113,7 @@ func (node *FetchNode) GetActionValues(actionType string) []string {
 	}
 
 	outs := make([]string, 0)
-	for _, item := range node.Data {
+	for _, item := range node.BindData {
 		outs = append(outs, dataEach(item)...)
 	}
 

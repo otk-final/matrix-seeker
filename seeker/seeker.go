@@ -146,75 +146,88 @@ func (f *FetchContext) CreateMatrixHandler(node *meta.FetchNode, req *http.Reque
 	m.Fetch = func() {
 		defer f.CtxWait.Done()
 
-		fetchArray := make([][]*meta.FetchData, 0)
-		//定位
-		selector := dom.Find(node.Bind.Position)
+		//公共数据
+		if node.GlobalMapper != nil {
+			//公共数据
+			globalArray := positionQuery(dom, node.GlobalMapper)
+			node.GlobalData = append(node.GlobalData, globalArray...)
+		}
 
-		log.Println("-------------------[" + node.Bind.Position + "]-------------------")
-		log.Println(selector.Html())
-		log.Println("-------------------[" + node.Bind.Position + "]-------------------")
-
-		//遍历执行
-		selector.Each(func(i int, selection *goquery.Selection) {
-			fetchData := make([]*meta.FetchData, 0)
-			//遍历执行
-			for _, field := range node.Bind.Fields {
-
-				fd := &meta.FetchData{
-					Field: field.Mapper,
-				}
-
-				//格式化值类型
-				switch field.ValueType {
-				case meta.ArrayType: //数组
-					array := make([]string, 0)
-					//数组
-					selection.Find(field.Selector).Each(func(s int, ss *goquery.Selection) {
-						//传入nil字符，之前取当前节点相关数据
-						data, err := findHandler("", field.FindType, ss)
-						if err != nil {
-							return
-						}
-						array = append(array, data)
-					})
-					fd.Value = array
-				case meta.ObjectType: //对象
-					out, err := findHandler(field.Selector, field.FindType, selection)
-					if err != nil {
-						continue
-					}
-					fd.Value = &struct {
-						Name  string
-						Value interface{}
-					}{
-						Name:  field.Mapper,
-						Value: out,
-					}
-				default: //默认(值)
-					out, err := findHandler(field.Selector, field.FindType, selection)
-					if err != nil {
-						continue
-					}
-					fd.Value = out
-				}
-
-				//添加到通道
-				fetchData = append(fetchData, fd)
-			}
-			fetchArray = append(fetchArray, fetchData)
-		})
-
+		//内容数据
+		bindArray := positionQuery(dom, node.BindMapper)
+		node.BindData = append(node.BindData, bindArray...)
 		//判断如果当前结果集未null,则通知上级调用
-		if len(fetchArray) == 0 {
+		if len(bindArray) == 0 {
 			return
 		}
-		//添加值
-		node.AppendData(fetchArray)
-
 		//遍历
-		f.eachCall(node, req, fetchArray)
+		f.eachCall(node, req, bindArray)
 	}
 	return m
+}
+
+func positionQuery(dom *goquery.Document, bind *meta.NodeBind) [][]*meta.FetchData {
+
+	//定位
+	selector := dom.Find(bind.Position)
+
+	log.Println("-------------------[" + bind.Position + "]-------------------")
+	log.Println(selector.Html())
+	log.Println("-------------------[" + bind.Position + "]-------------------")
+
+	fetchArray := make([][]*meta.FetchData, 0)
+
+	//遍历执行
+	selector.Each(func(i int, selection *goquery.Selection) {
+		fetchData := make([]*meta.FetchData, 0)
+		//遍历执行
+		for _, field := range bind.Fields {
+
+			fd := &meta.FetchData{
+				Field: field.Mapper,
+			}
+
+			//格式化值类型
+			switch field.ValueType {
+			case meta.ArrayType: //数组
+				array := make([]string, 0)
+				//数组
+				selection.Find(field.Selector).Each(func(s int, ss *goquery.Selection) {
+					//传入nil字符，之前取当前节点相关数据
+					data, err := findHandler("", field.FindType, ss)
+					if err != nil {
+						return
+					}
+					array = append(array, data)
+				})
+				fd.Value = array
+			case meta.ObjectType: //对象
+				out, err := findHandler(field.Selector, field.FindType, selection)
+				if err != nil {
+					continue
+				}
+				fd.Value = &struct {
+					Name  string
+					Value interface{}
+				}{
+					Name:  field.Mapper,
+					Value: out,
+				}
+			default: //默认(值)
+				out, err := findHandler(field.Selector, field.FindType, selection)
+				if err != nil {
+					continue
+				}
+				fd.Value = out
+			}
+
+			//添加到通道
+			fetchData = append(fetchData, fd)
+		}
+		fetchArray = append(fetchArray, fetchData)
+	})
+
+	return fetchArray
 }
 
 func (f *FetchContext) eachCall(currNode *meta.FetchNode, req *http.Request, fetchArray [][]*meta.FetchData) {
@@ -242,7 +255,7 @@ func (f *FetchContext) eachCall(currNode *meta.FetchNode, req *http.Request, fet
 		//对每个节点设置请求路径
 		tmpNode.Referer = req.URL.String()
 		//缓存上级值得来源
-		tmpNode.From = v
+		tmpNode.FromData = v
 
 		//创建深度实现
 		f.DepthChan <- f.CreateDepthHandler(tmpNode, req)

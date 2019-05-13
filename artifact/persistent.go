@@ -26,7 +26,7 @@ func (at *Persistent) bulkOf(node *meta.FetchNode) {
 	/*
 		优先判断数据
 	*/
-	if len(node.Data) == 0 {
+	if len(node.BindData) == 0 {
 		return
 	}
 
@@ -63,8 +63,9 @@ func (at *Persistent) bulkOf(node *meta.FetchNode) {
 	//文件格式
 	storeData := &meta.FileFetchData{
 		Referer: node.Referer,
-		Data:    node.Data,
-		From:    node.From,
+		Data:    node.BindData,
+		From:    node.FromData,
+		Global:  node.GlobalData,
 	}
 
 	//将内容转换为json格式存储
