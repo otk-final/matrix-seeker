@@ -12,10 +12,12 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"time"
 )
 
 type Persistent struct {
 	OutputDir string
+	Interval  time.Duration
 	WaitGroup *sync.WaitGroup
 }
 
@@ -48,6 +50,12 @@ func (at *Persistent) bulkOf(node *meta.FetchNode) {
 	currDir := filepath.Dir(nodePath)
 	for _, dv := range downloadArray {
 		at.WaitGroup.Add(1)
+
+		//间隔时间
+		if at.Interval > 0 {
+			<-time.After(at.Interval)
+		}
+
 		//遍历出当前结果集中需要下载图片的字段，名称
 		go at.CreateImgTask(currDir+"/素材/", node.Referer, dv)
 	}
@@ -113,10 +121,8 @@ func (at *Persistent) Bulk(node *meta.FetchNode) {
 		go at.bulkOf(tmpVal)
 
 		//下一个节点
-		if len(tmpVal.Childrens) > 0 {
-			for _, child := range tmpVal.Childrens {
-				stack.PushFront(child)
-			}
+		for _, child := range tmpVal.Childrens {
+			stack.PushFront(child)
 		}
 	}
 

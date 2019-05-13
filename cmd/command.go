@@ -81,6 +81,7 @@ func initContext(c *cli.Context, scriptPath string) (*seeker.FetchContext, *arti
 	at := &artifact.Persistent{
 		OutputDir: scriptPath + "/out",
 		WaitGroup: &sync.WaitGroup{},
+		Interval:  interval,
 	}
 
 	//判断文件夹是否存在
