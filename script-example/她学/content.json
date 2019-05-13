@@ -17,7 +17,8 @@
         "selector": ".wenConDes img",
         "findType": "attr:src",
         "valueType": "[]",
-        "mapper": "imgArray"
+        "mapper": "imgArray",
+        "actionType": "download"
       }
     ]
   },
