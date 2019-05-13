@@ -26,12 +26,12 @@
     "position": "head",
     "fields": [
       {
-        "selector": "meta[name='keywords']",
+        "selector": "meta[name='Keywords']",
         "findType": "attr:content",
         "mapper": "head-keywords"
       },
       {
-        "selector": "meta[name='description']",
+        "selector": "meta[name='Description']",
         "findType": "attr:content",
         "mapper": "head-description"
       }
